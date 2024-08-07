@@ -97,6 +97,14 @@ func NewScrapeConfigFake() *ScrapeConfig {
 	return config
 }
 
+func ParseUrl(url string) *urllib.URL {
+	base, err := urllib.Parse(url)
+	if err != nil {
+		log.Fatal(err)
+	}
+	return base
+}
+
 func NewChapterFromURL(url, linkName string, configs []*ScrapeConfig, index int, updateProgressBarName func(index int, name string)) chapter {
 	config := configs[0]
 
