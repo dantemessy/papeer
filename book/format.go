@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+	"time"
 
 	md "github.com/JohannesKaufmann/html-to-markdown"
 	"github.com/PuerkitoBio/goquery"
@@ -13,6 +14,19 @@ import (
 )
 
 func Filename(name string) string {
+	filename := name
+
+	filename = strings.ReplaceAll(filename, " ", "_")
+	filename = strings.ReplaceAll(filename, "/", "")
+
+	return filename
+}
+
+func FilenameExtractor(name string) string {
+	if name == "" {
+		timestamp := time.Now().Format("20060102_150405")
+		return fmt.Sprintf("unknown_%s", timestamp)
+	}
 	filename := name
 
 	filename = strings.ReplaceAll(filename, " ", "_")
@@ -65,6 +79,55 @@ func ToMarkdown(c chapter, filename string) string {
 	f.Close()
 
 	return filename
+}
+
+func ToMarkdownFiles(c chapter, dir string) {
+	// Create the directory if it doesn't exist
+	err := os.MkdirAll(dir, 0755)
+	if err != nil {
+		log.Fatal(err)
+	}
+	GenerateMarkdownFiles(c, dir)
+}
+
+func GenerateMarkdownFiles(c chapter, dir string) {
+	markdown := ""
+
+	// chapter content
+	if c.config.Include {
+		// file_name
+
+		filename := fmt.Sprintf("%s.md", FilenameExtractor(c.Name()))
+
+		fmt.Printf("Generating  %s File\n", filename)
+
+		// title
+		markdown += fmt.Sprintf("%s\n", c.Name())
+		markdown += fmt.Sprintf("%s\n\n", strings.Repeat("=", len(c.Name())))
+
+		// convert content to markdown
+		content, err := md.NewConverter("", true, nil).ConvertString(c.Content())
+		if err != nil {
+			log.Fatal(err)
+		}
+		markdown += fmt.Sprintf("%s\n\n\n", content)
+
+		// write to file
+		f, err := os.Create(dir + "/" + filename)
+		if err != nil {
+			log.Fatal(err)
+		}
+		_, err2 := f.WriteString(markdown)
+		if err2 != nil {
+			log.Fatal(err2)
+		}
+		f.Close()
+	}
+
+	// subchapters content
+	for _, sc := range c.SubChapters() {
+		GenerateMarkdownFiles(sc, dir)
+	}
 }
 
 func ToHtmlString(c chapter) string {
