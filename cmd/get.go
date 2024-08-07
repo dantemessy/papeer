@@ -23,6 +23,7 @@ type GetOptions struct {
 	stdout bool
 	images bool
 	quiet  bool
+	arabot bool
 
 	Selector    []string
 	depth       int
@@ -47,6 +48,7 @@ func init() {
 	getCmd.Flags().BoolVarP(&getOpts.stdout, "stdout", "", false, "print to standard output")
 	getCmd.Flags().BoolVarP(&getOpts.images, "images", "", false, "retrieve images only")
 	getCmd.Flags().BoolVarP(&getOpts.quiet, "quiet", "q", false, "hide progress bar")
+	getCmd.Flags().BoolVarP(&getOpts.arabot, "arabot", "", false, "generate file per page")
 
 	// common with list command
 	getCmd.Flags().StringSliceVarP(&getOpts.Selector, "selector", "s", []string{}, "table of contents CSS selector")
@@ -170,17 +172,30 @@ var getCmd = &cobra.Command{
 		c.SetName(c.SubChapters()[0].Name())
 
 		if getOpts.Format == "md" {
-			filename := book.ToMarkdown(c, getOpts.output)
+			if getOpts.arabot {
+				fmt.Println("Generating File per Page...")
 
-			if getOpts.stdout {
-				bytesRead, err := ioutil.ReadFile(filename)
-				if err != nil {
-					log.Fatal(err)
+				targetedWebSite := book.ParseUrl(args[0]).Hostname()
+				fmt.Printf("targetedWebSite %s \n", targetedWebSite)
+
+				for i, chapter := range c.SubChapters() {
+					book.ToMarkdownFiles(chapter, targetedWebSite)
+					fmt.Printf("Chapter Number # %d saved\n", i)
 				}
-
-				fmt.Println(string(bytesRead))
+				fmt.Printf("All Chapters been saved!\n")
 			} else {
-				fmt.Printf("Markdown saved to \"%s\"\n", filename)
+				filename := book.ToMarkdown(c, getOpts.output)
+
+				if getOpts.stdout {
+					bytesRead, err := ioutil.ReadFile(filename)
+					if err != nil {
+						log.Fatal(err)
+					}
+
+					fmt.Println(string(bytesRead))
+				} else {
+					fmt.Printf("Markdown saved to \"%s\"\n", filename)
+				}
 			}
 		}
 
